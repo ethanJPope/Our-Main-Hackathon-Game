@@ -1,0 +1,58 @@
+{
+  "status": "passed",
+  "fbx": "Assets/Art/Environment/Trees/Conifer_01/SM_Conifer_01.fbx",
+  "mesh_objects": 2,
+  "total_vertices": 935,
+  "total_triangles": 1566,
+  "world_bounds_xyz": {
+    "min": [
+      -2.304837226867676,
+      -2.3760178089141846,
+      -7.071375307532435e-08
+    ],
+    "max": [
+      2.4457759857177734,
+      2.311244487762451,
+      6.200000286102295
+    ],
+    "dimensions": [
+      4.750613212585449,
+      4.687262296676636,
+      6.200000356816048
+    ]
+  },
+  "base_center_check": {
+    "minimum_z_is_zero": true,
+    "mesh_origins_are_zero": true
+  },
+  "objects": [
+    {
+      "name": "SM_Conifer_01_Foliage",
+      "vertices": 900,
+      "triangles": 1500,
+      "materials": [
+        "M_Foliage_Shadow",
+        "M_Foliage_Mid",
+        "M_Foliage_Sun"
+      ],
+      "world_origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "SM_Conifer_01_Trunk",
+      "vertices": 35,
+      "triangles": 66,
+      "materials": [
+        "M_Tree_Bark"
+      ],
+      "world_origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}

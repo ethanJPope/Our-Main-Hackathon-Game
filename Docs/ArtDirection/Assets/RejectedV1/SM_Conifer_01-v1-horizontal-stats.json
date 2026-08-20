@@ -1,0 +1,93 @@
+{
+  "asset": "SM_Conifer_01",
+  "units": "meters",
+  "pivot": "base center at local origin",
+  "bounds_blender_xyz": {
+    "min": [
+      -2.304837226867676,
+      -2.3760178089141846,
+      0.0
+    ],
+    "max": [
+      2.4457759857177734,
+      2.3112435340881348,
+      6.199999809265137
+    ],
+    "dimensions": [
+      4.750613212585449,
+      4.687261343002319,
+      6.199999809265137
+    ]
+  },
+  "total_vertices": 935,
+  "total_triangles": 1566,
+  "objects": [
+    {
+      "name": "SM_Conifer_01_Trunk",
+      "vertices": 35,
+      "triangles": 66,
+      "material_slots": [
+        "M_Tree_Bark"
+      ]
+    },
+    {
+      "name": "SM_Conifer_01_Foliage",
+      "vertices": 900,
+      "triangles": 1500,
+      "material_slots": [
+        "M_Foliage_Shadow",
+        "M_Foliage_Mid",
+        "M_Foliage_Sun"
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "M_Tree_Bark",
+      "base_color_rgba": [
+        0.30000001192092896,
+        0.18000000715255737,
+        0.09000000357627869,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.8999999761581421
+    },
+    {
+      "name": "M_Foliage_Shadow",
+      "base_color_rgba": [
+        0.04500000178813934,
+        0.1899999976158142,
+        0.11999999731779099,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.8999999761581421
+    },
+    {
+      "name": "M_Foliage_Mid",
+      "base_color_rgba": [
+        0.10999999940395355,
+        0.3400000035762787,
+        0.18000000715255737,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.8999999761581421
+    },
+    {
+      "name": "M_Foliage_Sun",
+      "base_color_rgba": [
+        0.18000000715255737,
+        0.3700000047683716,
+        0.12999999523162842,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.8999999761581421
+    }
+  ],
+  "source_blend": "SourceArt/Blender/Environment/Trees/SM_Conifer_01.blend",
+  "unity_fbx": "Assets/Art/Environment/Trees/Conifer_01/SM_Conifer_01.fbx",
+  "preview": "Docs/ArtDirection/Assets/SM_Conifer_01-preview.png"
+}

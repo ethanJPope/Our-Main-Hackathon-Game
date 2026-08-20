@@ -1,0 +1,122 @@
+{
+  "asset": "SM_Conifer_01_DesignV2",
+  "design_version": 2,
+  "approval_status": "awaiting Ethan approval; no Unity export exists",
+  "units": "meters",
+  "pivot": "base center at local origin",
+  "construction": {
+    "main_foliage_tiers": 10,
+    "apex_strips": 12,
+    "trunk_visibility_target": "base only",
+    "panel_orientation": "near vertical; vertical drop exceeds outward travel",
+    "material_rule": "one solid color per separate foliage panel; no textures"
+  },
+  "bounds_blender_xyz": {
+    "min": [
+      -1.7841992378234863,
+      -1.8036774396896362,
+      0.0
+    ],
+    "max": [
+      1.8245813846588135,
+      1.7932100296020508,
+      6.38734245300293
+    ],
+    "dimensions": [
+      3.6087806224823,
+      3.596887469291687,
+      6.38734245300293
+    ]
+  },
+  "total_vertices": 3114,
+  "total_triangles": 5480,
+  "objects": [
+    {
+      "name": "SM_Conifer_01_DesignV2_Trunk",
+      "vertices": 48,
+      "triangles": 92,
+      "material_slots": [
+        "M_Tree_Bark"
+      ]
+    },
+    {
+      "name": "SM_Conifer_01_DesignV2_FoliageCore",
+      "vertices": 154,
+      "triangles": 292,
+      "material_slots": [
+        "M_Foliage_CoreShadow"
+      ]
+    },
+    {
+      "name": "SM_Conifer_01_DesignV2_FoliagePanels",
+      "vertices": 2912,
+      "triangles": 5096,
+      "material_slots": [
+        "M_Foliage_Shadow",
+        "M_Foliage_Mid",
+        "M_Foliage_Sun"
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "M_Tree_Bark",
+      "base_color_rgba": [
+        0.25,
+        0.14000000059604645,
+        0.06499999761581421,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.9200000166893005
+    },
+    {
+      "name": "M_Foliage_CoreShadow",
+      "base_color_rgba": [
+        0.02500000037252903,
+        0.10499999672174454,
+        0.054999999701976776,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.9200000166893005
+    },
+    {
+      "name": "M_Foliage_Shadow",
+      "base_color_rgba": [
+        0.04500000178813934,
+        0.17000000178813934,
+        0.07500000298023224,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.9200000166893005
+    },
+    {
+      "name": "M_Foliage_Mid",
+      "base_color_rgba": [
+        0.08500000089406967,
+        0.2849999964237213,
+        0.11500000208616257,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.9200000166893005
+    },
+    {
+      "name": "M_Foliage_Sun",
+      "base_color_rgba": [
+        0.18000000715255737,
+        0.38999998569488525,
+        0.14000000059604645,
+        1.0
+      ],
+      "metallic": 0.0,
+      "roughness": 0.9200000166893005
+    }
+  ],
+  "source_blend": "SourceArt/Blender/Environment/Trees/DesignV2/SM_Conifer_01-design-v2.blend",
+  "front_preview": "Docs/ArtDirection/Assets/DesignV2/SM_Conifer_01-design-v2-front.png",
+  "three_quarter_preview": "Docs/ArtDirection/Assets/DesignV2/SM_Conifer_01-design-v2-three-quarter.png",
+  "unity_export": null
+}
