@@ -33,8 +33,11 @@ public sealed class PlayerVitals : MonoBehaviour
     private float currentMagic;
     private float currentStamina;
     private float staminaRegenerationDelayRemaining;
+    private bool deathRaised;
 
     public event Action<PlayerResourceType, float, float> ResourceChanged;
+    public event Action<float, Vector3, Vector3> Damaged;
+    public event Action Died;
 
     public float CurrentHealth => currentHealth;
     public float CurrentMagic => currentMagic;
@@ -43,6 +46,7 @@ public sealed class PlayerVitals : MonoBehaviour
     public float MaximumMagic => maximumMagic;
     public float MaximumStamina => maximumStamina;
     public float StaminaRegenerationPerSecond => staminaRegenerationPerSecond;
+    public bool IsDead => currentHealth <= 0f;
 
     private void Awake()
     {
@@ -119,6 +123,31 @@ public sealed class PlayerVitals : MonoBehaviour
         SetCurrent(resourceType, GetCurrent(resourceType) + delta);
     }
 
+    public bool ApplyDamage(float amount, Vector3 hitPoint, Vector3 hitDirection)
+    {
+        if (amount <= 0f || currentHealth <= 0f)
+        {
+            return false;
+        }
+
+        float previousHealth = currentHealth;
+        SetCurrent(PlayerResourceType.Health, currentHealth - amount);
+        float appliedDamage = previousHealth - currentHealth;
+        if (appliedDamage <= 0f)
+        {
+            return false;
+        }
+
+        Damaged?.Invoke(appliedDamage, hitPoint, hitDirection);
+        if (IsDead && !deathRaised)
+        {
+            deathRaised = true;
+            Died?.Invoke();
+        }
+
+        return true;
+    }
+
     public bool TrySpend(PlayerResourceType resourceType, float amount)
     {
         if (amount < 0f || GetCurrent(resourceType) < amount)
@@ -135,6 +164,7 @@ public sealed class PlayerVitals : MonoBehaviour
         currentHealth = Mathf.Clamp(startingHealth, 0f, maximumHealth);
         currentMagic = Mathf.Clamp(startingMagic, 0f, maximumMagic);
         currentStamina = Mathf.Clamp(startingStamina, 0f, maximumStamina);
+        deathRaised = IsDead;
 
         ResourceChanged?.Invoke(PlayerResourceType.Health, currentHealth, maximumHealth);
         ResourceChanged?.Invoke(PlayerResourceType.Magic, currentMagic, maximumMagic);

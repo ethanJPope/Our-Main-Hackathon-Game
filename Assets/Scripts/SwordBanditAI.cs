@@ -9,7 +9,7 @@ using UnityEngine.AI;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyHealth))]
 [RequireComponent(typeof(NavMeshAgent))]
-public sealed class SwordBanditAI : MonoBehaviour
+public sealed class SwordBanditAI : MonoBehaviour, IAnimationContactReceiver
 {
     public enum CombatState
     {
@@ -63,23 +63,26 @@ public sealed class SwordBanditAI : MonoBehaviour
     private bool warnedAboutNavMesh;
     private Collider[] ownColliders;
     private readonly RaycastHit[] lineOfSightHits = new RaycastHit[8];
+    private NavMeshPath targetPath;
 
     public CombatState CurrentState => currentState;
     public bool HasTarget => hasTarget;
+    public Transform Target => target;
 
     private void Awake()
     {
         health = GetComponent<EnemyHealth>();
         agent = GetComponent<NavMeshAgent>();
         ownColliders = GetComponentsInChildren<Collider>();
+        targetPath = new NavMeshPath();
     }
 
     private void Start()
     {
-        if (target == null || targetVitals == null)
+        if (target == null || targetVitals == null || !IsTargetVitalsPairValid())
         {
             Debug.LogError(
-                $"{nameof(SwordBanditAI)} on {name} requires player Transform and {nameof(PlayerVitals)} references.",
+                $"{nameof(SwordBanditAI)} on {name} requires matching player Transform and {nameof(PlayerVitals)} references.",
                 this);
             enabled = false;
         }
@@ -87,8 +90,8 @@ public sealed class SwordBanditAI : MonoBehaviour
 
     public void ConfigureTarget(Transform playerTransform, PlayerVitals playerVitals)
     {
-        target = playerTransform;
         targetVitals = playerVitals;
+        target = playerVitals != null ? playerVitals.transform : playerTransform;
     }
 
     private void OnEnable()
@@ -181,6 +184,11 @@ public sealed class SwordBanditAI : MonoBehaviour
         DeliverStrike();
     }
 
+    public void OnAnimationAttackContact()
+    {
+        AnimationStrikeHit();
+    }
+
     private void UpdateAwareness()
     {
         if (Time.time < nextPerceptionTime)
@@ -246,7 +254,7 @@ public sealed class SwordBanditAI : MonoBehaviour
         agent.stoppingDistance = attackRange;
         if (Time.time >= nextDestinationRefreshTime)
         {
-            agent.SetDestination(lastKnownTargetPosition);
+            MeleeContactUtility.TrySetCompletePath(agent, lastKnownTargetPosition, targetPath);
             nextDestinationRefreshTime = Time.time + destinationRefreshInterval;
         }
     }
@@ -256,6 +264,7 @@ public sealed class SwordBanditAI : MonoBehaviour
         return Time.time >= nextAttackStartTime
             && distanceToTarget <= attackRange
             && IsFacingTarget()
+            && MeleeContactUtility.HasCompletePath(agent, target.position, targetPath)
             && (!requireLineOfSight || HasLineOfSight());
     }
 
@@ -299,6 +308,13 @@ public sealed class SwordBanditAI : MonoBehaviour
 
         if (Time.time >= stateEndsAt)
         {
+            // Imported events are the preferred contact source. This fallback
+            // prevents a changed/missing clip event from silently disabling combat.
+            if (useAnimationStrikeEvent && !strikeDelivered)
+            {
+                DeliverStrike();
+            }
+
             SetState(CombatState.Recovery, recoveryDuration);
         }
     }
@@ -318,6 +334,7 @@ public sealed class SwordBanditAI : MonoBehaviour
         return hasTarget
             && PlanarDistance(transform.position, target.position) <= attackRange
             && IsFacingTarget()
+            && MeleeContactUtility.HasCompletePath(agent, target.position, targetPath)
             && (!requireLineOfSight || HasLineOfSight());
     }
 
@@ -329,7 +346,11 @@ public sealed class SwordBanditAI : MonoBehaviour
         }
 
         strikeDelivered = true;
-        targetVitals.Modify(PlayerResourceType.Health, -attackDamage);
+        Vector3 hitDirection = (target.position - transform.position).normalized;
+        targetVitals.ApplyDamage(
+            attackDamage,
+            target.position + Vector3.up * targetAimHeight,
+            hitDirection);
     }
 
     private void StopMoving(bool lockRotation)
@@ -370,61 +391,20 @@ public sealed class SwordBanditAI : MonoBehaviour
 
     private bool HasLineOfSight()
     {
-        Vector3 origin = transform.position + Vector3.up * eyeHeight;
-        Vector3 aimPoint = target.position + Vector3.up * targetAimHeight;
-        Vector3 toTarget = aimPoint - origin;
-        float distance = toTarget.magnitude;
-
-        if (distance <= Mathf.Epsilon)
-        {
-            return true;
-        }
-
-        int hitCount = Physics.RaycastNonAlloc(
-            origin,
-            toTarget / distance,
-            lineOfSightHits,
-            distance,
+        return MeleeContactUtility.HasLineOfSight(
+            transform,
+            target,
+            eyeHeight,
+            targetAimHeight,
             lineOfSightMask,
-            QueryTriggerInteraction.Ignore);
-
-        Collider closestRelevantHit = null;
-        float closestDistance = float.PositiveInfinity;
-        for (int index = 0; index < hitCount; index++)
-        {
-            Collider hitCollider = lineOfSightHits[index].collider;
-            if (hitCollider == null || IsOwnCollider(hitCollider))
-            {
-                continue;
-            }
-
-            if (lineOfSightHits[index].distance < closestDistance)
-            {
-                closestDistance = lineOfSightHits[index].distance;
-                closestRelevantHit = hitCollider;
-            }
-        }
-
-        if (closestRelevantHit == null)
-        {
-            return true;
-        }
-
-        Transform hitTransform = closestRelevantHit.transform;
-        return hitTransform == target || hitTransform.IsChildOf(target) || target.IsChildOf(hitTransform);
+            ownColliders,
+            lineOfSightHits);
     }
 
-    private bool IsOwnCollider(Collider collider)
+    private bool IsTargetVitalsPairValid()
     {
-        for (int index = 0; index < ownColliders.Length; index++)
-        {
-            if (ownColliders[index] == collider)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        Transform vitalsTransform = targetVitals.transform;
+        return target == vitalsTransform || target.IsChildOf(vitalsTransform) || vitalsTransform.IsChildOf(target);
     }
 
     private void SetState(CombatState nextState, float duration = 0f)

@@ -14,6 +14,7 @@ public sealed class EnemyHealth : MonoBehaviour
 
     private float currentHealth;
 
+    public event Action<EnemyHealth, float, Vector3, Vector3> Damaged;
     public event Action<EnemyHealth> Died;
 
     public float CurrentHealth => currentHealth;
@@ -32,12 +33,18 @@ public sealed class EnemyHealth : MonoBehaviour
 
     public bool TakeDamage(float amount)
     {
+        return TakeDamage(amount, transform.position, Vector3.zero);
+    }
+
+    public bool TakeDamage(float amount, Vector3 hitPoint, Vector3 hitDirection)
+    {
         if (IsDead || amount <= 0f)
         {
             return false;
         }
 
         currentHealth = Mathf.Max(0f, currentHealth - amount);
+        Damaged?.Invoke(this, amount, hitPoint, hitDirection);
 
         if (currentHealth <= 0f)
         {

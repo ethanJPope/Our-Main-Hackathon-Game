@@ -19,14 +19,33 @@ public sealed class PlayerJoystickMovement : MonoBehaviour
     [SerializeField]
     private PlayerVitals playerVitals;
 
+    [SerializeField]
+    private PlayerAnimationDriver animationDriver;
+
     [SerializeField, Min(0f)]
     private float movementSpeed = 5f;
+
+    [Header("Movement Feel")]
+    [SerializeField, Min(0.01f)]
+    private float acceleration = 22f;
+
+    [SerializeField, Min(0.01f)]
+    private float turnAcceleration = 40f;
+
+    [SerializeField, Min(0.01f)]
+    private float deceleration = 30f;
 
     [SerializeField, Min(0f)]
     private float rotationSpeed = 12f;
 
+    [SerializeField, Range(0f, 1f)]
+    private float attackMovementMultiplier = 0.18f;
+
     [SerializeField]
     private float gravity = -20f;
+
+    [SerializeField, Min(0f)]
+    private float terminalFallSpeed = 40f;
 
     [Header("Dodge")]
     [SerializeField, Min(0f)]
@@ -48,14 +67,26 @@ public sealed class PlayerJoystickMovement : MonoBehaviour
     private float inputDeadZone = 0.05f;
 
     private CharacterController characterController;
+    private Vector3 horizontalVelocity;
     private float verticalVelocity;
     private float dodgeTimeRemaining;
     private float dodgeCooldownRemaining;
     private Vector3 dodgeDirection;
 
+    public bool CanAct => playerVitals != null && !playerVitals.IsDead;
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
+
+        // A dynamic Rigidbody and CharacterController must not own the same
+        // transform. Preserve old scenes safely if one is still attached.
+        Rigidbody attachedBody = GetComponent<Rigidbody>();
+        if (attachedBody != null)
+        {
+            attachedBody.isKinematic = true;
+            attachedBody.useGravity = false;
+        }
 
         if (joystick == null || cameraTransform == null || dodgeButton == null || playerVitals == null)
         {
@@ -71,7 +102,13 @@ public sealed class PlayerJoystickMovement : MonoBehaviour
         float deltaTime = Time.deltaTime;
         dodgeCooldownRemaining = Mathf.Max(0f, dodgeCooldownRemaining - deltaTime);
 
-        Vector2 input = joystick.Direction;
+        if (!CanAct)
+        {
+            horizontalVelocity = Vector3.zero;
+            dodgeTimeRemaining = 0f;
+        }
+
+        Vector2 input = CanAct ? joystick.Direction : Vector2.zero;
 
         Vector3 cameraForward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;
         Vector3 cameraRight = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized;
@@ -86,15 +123,17 @@ public sealed class PlayerJoystickMovement : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationBlend);
         }
 
-        if (dodgeButton.ConsumePress() &&
+        if (CanAct && dodgeButton.ConsumePress() &&
             dodgeCooldownRemaining <= 0f &&
             dodgeTimeRemaining <= 0f &&
             playerVitals.TrySpend(PlayerResourceType.Stamina, dodgeStaminaCost))
         {
             dodgeDirection = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            horizontalVelocity = Vector3.zero;
             playerVitals.DelayStaminaRegeneration(staminaRegenerationDelayAfterDodge);
             dodgeTimeRemaining = dodgeDuration;
             dodgeCooldownRemaining = dodgeCooldown;
+            animationDriver?.PlayDodge();
         }
 
         Vector3 horizontalDisplacement;
@@ -106,9 +145,29 @@ public sealed class PlayerJoystickMovement : MonoBehaviour
         }
         else
         {
-            horizontalDisplacement = desiredDirection.sqrMagnitude > inputDeadZone * inputDeadZone
-                ? desiredDirection * movementSpeed * inputMagnitude * deltaTime
+            bool hasMovementInput = desiredDirection.sqrMagnitude > inputDeadZone * inputDeadZone;
+            Vector3 targetVelocity = hasMovementInput
+                ? desiredDirection * movementSpeed * inputMagnitude
                 : Vector3.zero;
+
+            if (animationDriver != null && animationDriver.IsAttackMovementLocked)
+            {
+                targetVelocity *= attackMovementMultiplier;
+            }
+
+            float velocityChangeRate = deceleration;
+            if (hasMovementInput)
+            {
+                bool isReversingDirection = horizontalVelocity.sqrMagnitude > 0.01f &&
+                    Vector3.Dot(horizontalVelocity.normalized, targetVelocity.normalized) < 0.5f;
+                velocityChangeRate = isReversingDirection ? turnAcceleration : acceleration;
+            }
+
+            horizontalVelocity = Vector3.MoveTowards(
+                horizontalVelocity,
+                targetVelocity,
+                velocityChangeRate * deltaTime);
+            horizontalDisplacement = horizontalVelocity * deltaTime;
         }
 
         if (characterController.isGrounded && verticalVelocity < 0f)
@@ -117,10 +176,25 @@ public sealed class PlayerJoystickMovement : MonoBehaviour
         }
         else
         {
-            verticalVelocity += gravity * deltaTime;
+            verticalVelocity = Mathf.Max(verticalVelocity + gravity * deltaTime, -terminalFallSpeed);
         }
 
         Vector3 verticalDisplacement = Vector3.up * verticalVelocity * deltaTime;
-        characterController.Move(horizontalDisplacement + verticalDisplacement);
+        Vector3 positionBeforeMove = transform.position;
+        CollisionFlags collisionFlags = characterController.Move(horizontalDisplacement + verticalDisplacement);
+        if (dodgeTimeRemaining <= 0f && (collisionFlags & CollisionFlags.Sides) != 0)
+        {
+            Vector3 actualHorizontalVelocity = Vector3.ProjectOnPlane(
+                transform.position - positionBeforeMove,
+                Vector3.up) / Mathf.Max(deltaTime, Mathf.Epsilon);
+            horizontalVelocity = actualHorizontalVelocity;
+        }
+
+        float animationSpeed = movementSpeed > 0f ? horizontalVelocity.magnitude / movementSpeed : 0f;
+        animationDriver?.SetMovementSpeed(dodgeTimeRemaining > 0f ? 0f : animationSpeed);
+        animationDriver?.SetLocomotionVelocity(
+            dodgeTimeRemaining > 0f ? dodgeDirection * (dodgeDistance / dodgeDuration) : horizontalVelocity,
+            dodgeTimeRemaining > 0f ? dodgeDistance / dodgeDuration : movementSpeed);
+        animationDriver?.SetGrounded(characterController.isGrounded);
     }
 }
