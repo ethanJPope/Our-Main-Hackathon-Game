@@ -169,3 +169,7 @@ Packages/packages-lock.json linguist-generated
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# TerrainData assets are binary even when the project uses Force Text.
+# Keep Git from normalizing byte sequences as line endings.
+"Assets/Area 1 Terrain/*.asset" -unity-yaml binary !eol

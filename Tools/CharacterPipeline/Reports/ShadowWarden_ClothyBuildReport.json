@@ -1,0 +1,47 @@
+{
+  "output": "D:\\UnityProjects\\MainHackathonGame\\Main Hackathon Game\\Assets\\Art\\Characters\\MiniBosses\\ShadowWarden\\Models\\SM_ShadowWarden.fbx",
+  "body": {
+    "vertices": 28483,
+    "polygons": 40619,
+    "bounds": {
+      "min": [
+        -1.0526987314224243,
+        -0.45516276359558105,
+        -1.1502028703689575
+      ],
+      "max": [
+        1.017997145652771,
+        0.3032399117946625,
+        1.107225775718689
+      ]
+    }
+  },
+  "cape": {
+    "vertices": 5685,
+    "polygons": 9435,
+    "bounds": {
+      "min": [
+        -0.606881856918335,
+        -0.3970239758491516,
+        -1.0003126859664917
+      ],
+      "max": [
+        0.544195830821991,
+        0.5442517995834351,
+        0.5790562629699707
+      ]
+    },
+    "vertexGroups": [
+      "mixamorig:Hips",
+      "mixamorig:Spine",
+      "mixamorig:Spine1",
+      "mixamorig:LeftUpLeg",
+      "mixamorig:RightUpLeg"
+    ],
+    "source": "Clothy render garment layers (9 islands)"
+  },
+  "armature": {
+    "name": "ShadowWarden_Armature",
+    "boneCount": 52
+  }
+}
