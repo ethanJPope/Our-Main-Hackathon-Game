@@ -28,6 +28,7 @@ public sealed class ShadowWardenAI : MonoBehaviour, IAnimationContactReceiver
     [SerializeField] private PlayerVitals targetVitals;
     [SerializeField] private Animator animator;
     [SerializeField] private HumanoidAnimationRuntime proceduralMotion;
+    [SerializeField] private ShadowWardenNativeWalk nativeMotion;
 
     [Header("Movement")]
     [SerializeField, Min(0.1f)] private float detectionRange = 12f;
@@ -76,6 +77,11 @@ public sealed class ShadowWardenAI : MonoBehaviour, IAnimationContactReceiver
         if (proceduralMotion == null && animator != null)
         {
             proceduralMotion = animator.GetComponent<HumanoidAnimationRuntime>();
+        }
+
+        if (nativeMotion == null)
+        {
+            nativeMotion = GetComponent<ShadowWardenNativeWalk>();
         }
 
         if (animator != null)
@@ -220,6 +226,7 @@ public sealed class ShadowWardenAI : MonoBehaviour, IAnimationContactReceiver
         stateEndsAt = Time.time + windupDuration;
         animator.SetTrigger(Attack);
         proceduralMotion?.BeginAttackAim(target.position + Vector3.up, windupDuration + strikeDuration + 0.35f);
+        nativeMotion?.BeginHeavyStrike(windupDuration + strikeDuration + recoveryDuration * 0.45f);
     }
 
     private void TickWindup()

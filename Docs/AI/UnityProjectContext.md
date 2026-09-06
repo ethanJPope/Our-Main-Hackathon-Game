@@ -1,5 +1,13 @@
 # Unity Project Context
 
+## Player controls update — September 4, 2026
+
+`Assets/PlayerScene.unity` now contains the dual mobile/desktop combat setup,
+lock-on, buffered actions, directional dodge with timed immunity, tuned
+animation playback, and combat VFX. See [PlayerCombatControls.md](PlayerCombatControls.md)
+for current bindings, timing, validation, and limitations. This supersedes the
+older prototype input and testing notes below for PlayerScene.
+
 <!-- unity-onboarding:generated:start -->
 
 ## Project Summary
@@ -91,7 +99,7 @@
 
 - The project working tree already contains user/template changes unrelated to this task; preserve them.
 - Saving the HDRP scene through the current Unity 6 editor may serialize automatic HDRP/project-setting upgrades; review those diffs before committing.
-- Mobile is the first target. PC support is deferred.
+- Mobile remains a target; keyboard/mouse support is now implemented in PlayerScene.
 - The control prototype should use the existing Input System and uGUI package.
 - Camera control must use Cinemachine; do not implement the orbit camera as a standalone transform-only controller.
 - Avoid editing HDRP settings unless the control prototype proves a direct need.

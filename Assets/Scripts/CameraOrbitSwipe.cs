@@ -22,19 +22,29 @@ public sealed class CameraOrbitSwipe : MonoBehaviour
     private PointerEventData pointerEventData;
     private int activeFingerId = -1;
     private bool mouseDragging;
+    private Vector2 previousMousePosition;
+    private PlayerCombatTargeting targeting;
 
     private void Awake()
     {
         orbitalFollow = GetComponent<CinemachineOrbitalFollow>();
+        targeting = FindFirstObjectByType<PlayerCombatTargeting>();
     }
 
     private void Update()
     {
+        if (Time.timeScale <= 0f) { OnDisable(); return; }
         ReadTouchSwipe();
 
         if (Input.touchCount == 0)
         {
             ReadMouseDrag();
+        }
+        if (targeting != null && targeting.IsLocked && activeFingerId < 0 && !mouseDragging)
+        {
+            Vector3 facing = targeting.FacingDirection;
+            float heading = Mathf.Atan2(facing.x, facing.z) * Mathf.Rad2Deg;
+            orbitalFollow.HorizontalAxis.Value = Mathf.LerpAngle(orbitalFollow.HorizontalAxis.Value, heading, 1f - Mathf.Exp(-3f * Time.deltaTime));
         }
     }
 
@@ -89,18 +99,19 @@ public sealed class CameraOrbitSwipe : MonoBehaviour
     {
         Vector2 mousePosition = Input.mousePosition;
 
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(1))
         {
-            bool startsInCameraArea = mousePosition.x >= Screen.width * minimumSwipeStartX;
-            mouseDragging = startsInCameraArea && !IsPositionOverUi(mousePosition);
+            mouseDragging = !IsPositionOverUi(mousePosition);
+            previousMousePosition = mousePosition;
         }
 
-        if (mouseDragging && Input.GetMouseButton(0))
+        if (mouseDragging && Input.GetMouseButton(1))
         {
-            ApplyHorizontalDelta(Input.GetAxisRaw("Mouse X"));
+            ApplyHorizontalDelta(mousePosition.x - previousMousePosition.x);
+            previousMousePosition = mousePosition;
         }
 
-        if (Input.GetMouseButtonUp(0))
+        if (!Input.GetMouseButton(1))
         {
             mouseDragging = false;
         }
@@ -122,6 +133,9 @@ public sealed class CameraOrbitSwipe : MonoBehaviour
 
     private void ApplyHorizontalDelta(float horizontalDelta)
     {
-        orbitalFollow.HorizontalAxis.Value += horizontalDelta * swipeSensitivity;
+        orbitalFollow.HorizontalAxis.Value += horizontalDelta * swipeSensitivity * 1080f / Mathf.Max(1, Screen.height);
     }
+
+    private void OnApplicationFocus(bool focused) { if (!focused) OnDisable(); }
+    private void OnApplicationPause(bool paused) { if (paused) OnDisable(); }
 }

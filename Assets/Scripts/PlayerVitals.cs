@@ -34,6 +34,7 @@ public sealed class PlayerVitals : MonoBehaviour
     private float currentStamina;
     private float staminaRegenerationDelayRemaining;
     private bool deathRaised;
+    private PlayerJoystickMovement movement;
 
     public event Action<PlayerResourceType, float, float> ResourceChanged;
     public event Action<float, Vector3, Vector3> Damaged;
@@ -50,11 +51,13 @@ public sealed class PlayerVitals : MonoBehaviour
 
     private void Awake()
     {
+        movement = GetComponent<PlayerJoystickMovement>();
         ResetToStartingValues();
     }
 
     private void Update()
     {
+        if (IsDead) return;
         staminaRegenerationDelayRemaining = Mathf.Max(
             0f,
             staminaRegenerationDelayRemaining - Time.deltaTime);
@@ -125,7 +128,7 @@ public sealed class PlayerVitals : MonoBehaviour
 
     public bool ApplyDamage(float amount, Vector3 hitPoint, Vector3 hitDirection)
     {
-        if (amount <= 0f || currentHealth <= 0f)
+        if (amount <= 0f || currentHealth <= 0f || (movement != null && movement.IsInvulnerable))
         {
             return false;
         }
@@ -165,6 +168,7 @@ public sealed class PlayerVitals : MonoBehaviour
         currentMagic = Mathf.Clamp(startingMagic, 0f, maximumMagic);
         currentStamina = Mathf.Clamp(startingStamina, 0f, maximumStamina);
         deathRaised = IsDead;
+        staminaRegenerationDelayRemaining = 0f;
 
         ResourceChanged?.Invoke(PlayerResourceType.Health, currentHealth, maximumHealth);
         ResourceChanged?.Invoke(PlayerResourceType.Magic, currentMagic, maximumMagic);

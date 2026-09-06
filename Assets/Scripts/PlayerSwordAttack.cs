@@ -27,11 +27,28 @@ public sealed class PlayerSwordAttack : MonoBehaviour, IAnimationContactReceiver
     private float fallbackContactAt;
     private bool contactPending;
     private EnemyHealth assistedTarget;
+    private PlayerCombatInput combatInput;
+    private PlayerJoystickMovement movement;
+    private PlayerCombatTargeting targeting;
+    private CombatHitReaction hitReaction;
+    [SerializeField, Min(0f)] private float attackStaminaCost = 12f;
+    public bool IsBusy => isActiveAndEnabled && Time.time < nextAttackTime;
+    public float CooldownRemaining => Mathf.Max(0f, nextAttackTime - Time.time);
+    public float AttackStaminaCost => attackStaminaCost;
+    public event System.Action<Vector3> HitConfirmed;
 
-    public bool CanAttack => playerVitals != null && !playerVitals.IsDead;
+    public bool CanAttack => isActiveAndEnabled && playerVitals != null && !playerVitals.IsDead && Time.timeScale > 0f && (hitReaction == null || !hitReaction.IsReacting);
 
     private void Awake()
     {
+        combatInput = GetComponent<PlayerCombatInput>();
+        movement = GetComponent<PlayerJoystickMovement>();
+        targeting = GetComponent<PlayerCombatTargeting>();
+        hitReaction = GetComponent<CombatHitReaction>();
+        // Internal presentation proxies (cloth, aim helpers, etc.) live on
+        // Ignore Raycast and must never consume the finite combat overlap buffer.
+        hittableLayers &= ~(1 << 2);
+
         if (playerVitals == null)
         {
             playerVitals = GetComponent<PlayerVitals>();
@@ -63,6 +80,7 @@ public sealed class PlayerSwordAttack : MonoBehaviour, IAnimationContactReceiver
 
     private void Update()
     {
+        if (Time.timeScale <= 0f) return;
         if (!CanAttack)
         {
             ClearPendingContact();
@@ -72,6 +90,13 @@ public sealed class PlayerSwordAttack : MonoBehaviour, IAnimationContactReceiver
         if (contactPending && Time.time >= fallbackContactAt)
         {
             ResolveContact();
+        }
+
+        if (combatInput != null)
+        {
+            if (combatInput.HasBuffered(PlayerCombatInput.Action.Attack) && TryAttack())
+                combatInput.Consume(PlayerCombatInput.Action.Attack);
+            return;
         }
 
         if (mobileAttackButton == null)
@@ -87,10 +112,14 @@ public sealed class PlayerSwordAttack : MonoBehaviour, IAnimationContactReceiver
 
     public bool TryAttack()
     {
-        if (!CanAttack || Time.time < nextAttackTime || contactPending)
+        if (!CanAttack || Time.time < nextAttackTime || contactPending || (movement != null && movement.IsDodgeRecovering))
         {
             return false;
         }
+
+        if (!playerVitals.TrySpend(PlayerResourceType.Stamina, attackStaminaCost)) return false;
+        playerVitals.DelayStaminaRegeneration(0.8f);
+        targeting?.FaceForAttack();
 
         assistedTarget = FindBestTarget();
         Vector3 aimPoint = assistedTarget != null
@@ -112,7 +141,16 @@ public sealed class PlayerSwordAttack : MonoBehaviour, IAnimationContactReceiver
 
     private void OnDisable()
     {
+        if (playerVitals != null) playerVitals.Damaged -= OnDamaged;
         ClearPendingContact();
+        combatInput?.Clear();
+    }
+
+    private void OnEnable() { if (playerVitals != null) playerVitals.Damaged += OnDamaged; }
+    private void OnDamaged(float amount, Vector3 point, Vector3 direction)
+    {
+        ClearPendingContact();
+        combatInput?.Clear();
     }
 
     private void ClearPendingContact()
@@ -123,7 +161,7 @@ public sealed class PlayerSwordAttack : MonoBehaviour, IAnimationContactReceiver
 
     private void ResolveContact()
     {
-        if (!contactPending)
+        if (!contactPending || !CanAttack)
         {
             return;
         }
@@ -172,7 +210,7 @@ public sealed class PlayerSwordAttack : MonoBehaviour, IAnimationContactReceiver
         if (closestEnemy != null)
         {
             Vector3 direction = (closestEnemy.transform.position - transform.position).normalized;
-            closestEnemy.TakeDamage(attackDamage, contactPoint, direction);
+            if (closestEnemy.TakeDamage(attackDamage, contactPoint, direction)) HitConfirmed?.Invoke(contactPoint);
         }
 
         assistedTarget = null;

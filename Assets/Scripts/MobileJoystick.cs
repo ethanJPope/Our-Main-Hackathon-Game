@@ -16,7 +16,10 @@ public sealed class MobileJoystick : MonoBehaviour
     [SerializeField, Min(1f)]
     private float movementRange = 64f;
 
-    public Vector2 Direction { get; private set; }
+    [SerializeField, Range(0f, 0.4f)] private float deadZone = 0.12f;
+    private Vector2 direction;
+    private int sampledFrame = -1;
+    public Vector2 Direction { get { Sample(); return direction; } }
 
     private Canvas canvas;
     private Camera uiCamera;
@@ -43,6 +46,14 @@ public sealed class MobileJoystick : MonoBehaviour
 
     private void Update()
     {
+        Sample();
+    }
+
+    private void Sample()
+    {
+        if (!isActiveAndEnabled || sampledFrame == Time.frameCount) return;
+        sampledFrame = Time.frameCount;
+        if (Time.timeScale <= 0f) { OnDisable(); return; }
         ReadTouches();
 
         if (Input.touchCount == 0)
@@ -57,6 +68,9 @@ public sealed class MobileJoystick : MonoBehaviour
         mouseActive = false;
         ResetHandle();
     }
+
+    private void OnApplicationFocus(bool focused) { if (!focused) OnDisable(); }
+    private void OnApplicationPause(bool paused) { if (paused) OnDisable(); }
 
     private void ReadTouches()
     {
@@ -132,12 +146,13 @@ public sealed class MobileJoystick : MonoBehaviour
 
         Vector2 offset = Vector2.ClampMagnitude(localPosition - handleStartPosition, movementRange);
         handle.anchoredPosition = handleStartPosition + offset;
-        Direction = offset / movementRange;
+        float magnitude = offset.magnitude / movementRange;
+        direction = magnitude <= deadZone ? Vector2.zero : offset.normalized * Mathf.InverseLerp(deadZone, 1f, magnitude);
     }
 
     private void ResetHandle()
     {
-        Direction = Vector2.zero;
+        direction = Vector2.zero;
 
         if (handle != null)
         {
